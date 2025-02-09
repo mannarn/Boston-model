@@ -33,7 +33,7 @@ jobs:
     # Step 6: Wait for Jobs to complete
     - name: Wait for Jobs to complete
       run: |
-        kubectl wait --for=condition=complete --timeout=600s job --all
+        kubectl wait --for=condition=complete --timeout=1800s job --all
 
     # Step 7: Collect results and find the best model
     - name: Collect results
@@ -58,14 +58,24 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Step 2: Build and push Docker image
-    - name: Build and push Docker image
+    # Step 2: Build and push API Docker image
+    - name: Build and push API Docker image
       if: env.BEST_MSE < env.OLD_BEST_MSE
       uses: docker/build-push-action@v2
       with:
         context: .
+        file: Dockerfile.api
         push: true
         tags: mannarn/model-api:latest
+        secrets: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push Train Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: Dockerfile.train
+        push: true
+        tags: mannarn/model-train:latest
         secrets: ${{ secrets.DOCKERHUB_TOKEN }}
 
     # Step 3: Deploy to Kubernetes
@@ -80,10 +90,12 @@ jobs:
     # Step 4: Update old model's best MSE score if new model is better
     - name: Update old model's best MSE score
       if: env.BEST_MSE < env.OLD_BEST_MSE
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         echo "$BEST_MSE" > old_best_mse.txt
-        git config --global user.email "you@example.com"
-        git config --global user.name "Your Name"
+        git config --global user.email "mannarmannan02@gmail.com"
+        git config --global user.name "mannarn"
         git add old_best_mse.txt
         git commit -m "Update old best MSE score"
-        git push
+        git push --force https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
