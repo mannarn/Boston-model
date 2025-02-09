@@ -3,7 +3,7 @@ import joblib
 import numpy as np
 
 app = Flask(__name__)
-model = joblib.load("model.joblib")
+model = joblib.load("best_model.joblib")
 
 @app.route('/predict', methods=['POST'])
 def predict():
