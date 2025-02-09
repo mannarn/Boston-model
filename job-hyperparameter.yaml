@@ -4,6 +4,9 @@ metadata:
   name: trial-{{N_ESTIMATORS}}-{{MAX_DEPTH}}-{{LEARNING_RATE}}-{{SUBSAMPLE}}
 spec:
   template:
+    metadata:
+      labels:
+        app: trial-{{N_ESTIMATORS}}-{{MAX_DEPTH}}-{{LEARNING_RATE}}-{{SUBSAMPLE}}
     spec:
       containers:
       - name: xgb-trainer
