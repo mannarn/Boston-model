@@ -6,7 +6,11 @@ spec:
   template:
     metadata:
       labels:
-        app: trial-{{N_ESTIMATORS}}-{{MAX_DEPTH}}-{{LEARNING_RATE}}-{{SUBSAMPLE}}
+        app: trial
+        n_estimators: "{{N_ESTIMATORS}}"
+        max_depth: "{{MAX_DEPTH}}"
+        learning_rate: "{{LEARNING_RATE}}"
+        subsample: "{{SUBSAMPLE}}"
     spec:
       containers:
       - name: xgb-trainer
