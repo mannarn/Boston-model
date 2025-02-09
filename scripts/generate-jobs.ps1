@@ -11,7 +11,7 @@ foreach ($n in $n_estimators_list) {
             foreach ($sub in $subsample_list) {
                 $yamlContent = (Get-Content job-hyperparameter.yaml -Raw) `
                     -replace '\{\{N_ESTIMATORS\}\}', $n `
-                    -replace '\{\{MAX_DEPTH\}\}', $depth `
+                    -replace '\{\{MAX_DEPTH\}\}\}', $depth `
                     -replace '\{\{LEARNING_RATE\}\}\}', $lr `
                     -replace '\{\{SUBSAMPLE\}\}\}', $sub
                 
