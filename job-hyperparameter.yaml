@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trial-{{N_ESTIMATORS}}-{{MAX_DEPTH}}-{{LEARNING_RATE}}-{{SUBSAMPLE}}
+spec:
+  template:
+    spec:
+      containers:
+      - name: xgb-trainer
+        image: hp-xgboost
+        imagePullPolicy: Never  # Use local image
+        args:
+        - "--n_estimators={{N_ESTIMATORS}}"
+        - "--max_depth={{MAX_DEPTH}}"
+        - "--learning_rate={{LEARNING_RATE}}"
+        - "--subsample={{SUBSAMPLE}}"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+      restartPolicy: Never  # Must be a string
+      volumes:
+      - name: data-volume
+        hostPath:
+          path: /data
+          type: DirectoryOrCreate

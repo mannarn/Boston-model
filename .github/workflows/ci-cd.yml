@@ -1,0 +1,89 @@
+name: Model CI/CD Pipeline with Hyperparameter Tuning
+on: [push]
+
+jobs:
+  hyperparameter-tuning:
+    runs-on: ubuntu-latest
+    steps:
+    # Step 1: Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Python
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    # Step 4: Run unit tests
+    - name: Run unit tests
+      run: python -m pytest tests/
+
+    # Step 5: Generate Kubernetes Jobs for hyperparameter tuning
+    - name: Generate Kubernetes Jobs
+      shell: pwsh
+      run: |
+        chmod +x scripts/generate-jobs.ps1
+        ./scripts/generate-jobs.ps1
+
+    # Step 6: Wait for Jobs to complete
+    - name: Wait for Jobs to complete
+      run: |
+        kubectl wait --for=condition=complete --timeout=600s job --all
+
+    # Step 7: Collect results and find the best model
+    - name: Collect results
+      run: |
+        minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
+        BEST_MSE=$(sort -n all_metrics.txt | head -n 1)
+        echo "Best MSE: $BEST_MSE"
+        echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
+
+    # Step 8: Retrieve old model's best MSE score
+    - name: Retrieve old model's best MSE score
+      run: |
+        OLD_BEST_MSE=$(cat old_best_mse.txt)
+        echo "Old Best MSE: $OLD_BEST_MSE"
+        echo "OLD_BEST_MSE=$OLD_BEST_MSE" >> $GITHUB_ENV
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: hyperparameter-tuning
+    steps:
+    # Step 1: Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Step 2: Build and push Docker image
+    - name: Build and push Docker image
+      if: env.BEST_MSE < env.OLD_BEST_MSE
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: mannarn/model-api:latest
+        secrets: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # Step 3: Deploy to Kubernetes
+    - name: Deploy to Kubernetes
+      if: env.BEST_MSE < env.OLD_BEST_MSE
+      uses: azure/k8s-deploy@v1
+      with:
+        namespace: default
+        manifests: kubernetes/deployment.yaml
+        images: mannarn/model-api:latest
+
+    # Step 4: Update old model's best MSE score if new model is better
+    - name: Update old model's best MSE score
+      if: env.BEST_MSE < env.OLD_BEST_MSE
+      run: |
+        echo "$BEST_MSE" > old_best_mse.txt
+        git config --global user.email "you@example.com"
+        git config --global user.name "Your Name"
+        git add old_best_mse.txt
+        git commit -m "Update old best MSE score"
+        git push
