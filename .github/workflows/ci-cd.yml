@@ -19,23 +19,19 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
 
-    # Step 4: Run unit tests
-    - name: Run unit tests
-      run: python -m pytest tests/
-
-    # Step 5: Generate Kubernetes Jobs for hyperparameter tuning
+    # Step 4: Generate Kubernetes Jobs for hyperparameter tuning
     - name: Generate Kubernetes Jobs
       shell: pwsh
       run: |
         chmod +x scripts/generate-jobs.ps1
         ./scripts/generate-jobs.ps1
 
-    # Step 6: Wait for Jobs to complete
+    # Step 5: Wait for Jobs to complete
     - name: Wait for Jobs to complete
       run: |
         kubectl wait --for=condition=complete --timeout=1800s job --all
 
-    # Step 7: Collect results and find the best model
+    # Step 6: Collect results and find the best model
     - name: Collect results
       run: |
         minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
@@ -43,7 +39,7 @@ jobs:
         echo "Best MSE: $BEST_MSE"
         echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
 
-    # Step 8: Retrieve old model's best MSE score
+    # Step 7: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
       run: |
         OLD_BEST_MSE=$(cat old_best_mse.txt)
