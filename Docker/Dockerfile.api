@@ -1,11 +1,7 @@
 FROM python:3.8-slim
-
 WORKDIR /app
-
-COPY ../requirements.txt .
+COPY requirements.txt .
 RUN pip install -r requirements.txt
-
-COPY ../app.py .
-COPY ../data/best_model.joblib /data/best_model.joblib  # Update the path and model name as needed
-
+COPY app.py .
+COPY best_model.joblib .
 CMD ["python", "app.py"]

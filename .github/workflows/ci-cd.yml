@@ -124,7 +124,7 @@ jobs:
 
     # Step 3: Copy best model file
     - name: Copy best model file
-      run: cp /path/to/generated/best_model.joblib data/best_model.joblib  # Update the path as needed
+      run: cp best_model.joblib Docker/best_model.joblib  # Update the path as needed
 
     # Step 4: Build and push API Docker image
     - name: Build and push API Docker image
