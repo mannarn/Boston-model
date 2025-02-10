@@ -72,7 +72,7 @@ jobs:
     # Step 7: Wait for Jobs to complete
     - name: Wait for Jobs to complete
       run: |
-        kubectl wait --for=condition=complete --timeout=1000s job --all || true
+        kubectl wait --for=condition=complete --timeout=1800s job --all || true
 
     # Step 8: Check Job and Pod Status
     - name: Check Job and Pod Status
@@ -99,7 +99,11 @@ jobs:
     # Step 11: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
       run: |
-        OLD_BEST_MSE=$(cat old_best_mse.txt)
+        if [ -f old_best_mse.txt ]; then
+          OLD_BEST_MSE=$(cat old_best_mse.txt)
+        else
+          OLD_BEST_MSE=999999
+        fi
         echo "Old Best MSE: $OLD_BEST_MSE"
         echo "OLD_BEST_MSE=$OLD_BEST_MSE" >> $GITHUB_ENV
 

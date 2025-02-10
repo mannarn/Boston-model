@@ -58,7 +58,7 @@ print(f"MSE: {mse}\n")
 
 joblib.dump(model, f"/data/model_{args.n_estimators}_{args.max_depth}.joblib")
 with open(f"/data/metrics_{args.n_estimators}_{args.max_depth}.txt", "w") as f:
-    f.write(str(mse))
+    f.write(str(mse)+ "\n")
     """
 
 # Save model and metrics in the current directory
