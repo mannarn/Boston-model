@@ -30,11 +30,6 @@ jobs:
         push: true
         tags: mannarn/model-train:latest
 
-    # Step 5: Run Train Docker container to produce the best model
-    - name: Run Train Docker container
-      run: |
-        docker run --rm -v ${{ github.workspace }}:/app mannarn/model-train:latest
-
   hyperparameter-tuning:
     runs-on: ubuntu-latest
     needs: build-and-train
