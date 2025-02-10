@@ -2,33 +2,31 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: trial-{{N_ESTIMATORS}}-{{MAX_DEPTH}}-{{LEARNING_RATE}}-{{SUBSAMPLE}}
-  labels:
-    app: xgb-hyperparameter-tuning
-    trial: "true"
 spec:
   template:
     metadata:
       labels:
-        app: trial
-        n_estimators: "{{N_ESTIMATORS}}"
-        max_depth: "{{MAX_DEPTH}}"
-        learning_rate: "{{LEARNING_RATE}}"
-        subsample: "{{SUBSAMPLE}}"
+        app: trial-{{N_ESTIMATORS}}-{{MAX_DEPTH}}-{{LEARNING_RATE}}-{{SUBSAMPLE}}
     spec:
       containers:
       - name: xgb-trainer
         image: hp-xgboost
-        imagePullPolicy: Never
+        imagePullPolicy: Never  # Use local image
         args:
         - "--n_estimators={{N_ESTIMATORS}}"
         - "--max_depth={{MAX_DEPTH}}"
-        - "--learning_rate={{LEARNING_RATE_RAW}}"  # Use raw value for the model
-        - "--subsample={{SUBSAMPLE_RAW}}"          # Use raw value for the model
+        - "--learning_rate={{LEARNING_RATE_RAW}}"
+        - "--subsample={{SUBSAMPLE_RAW}}"
         volumeMounts:
+        - name: shm
+          mountPath: /dev/shm
         - name: data-volume
           mountPath: /data
-      restartPolicy: Never
+      restartPolicy: Never  # Must be a string
       volumes:
+      - name: shm
+        emptyDir:
+          medium: Memory
       - name: data-volume
         hostPath:
           path: /data
