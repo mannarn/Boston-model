@@ -56,25 +56,39 @@ jobs:
         sudo mv minikube /usr/local/bin/
         minikube start --driver=docker --cpus=4 --memory=8192mb
 
-    # Step 5: Generate Kubernetes Jobs for hyperparameter tuning
+    # Step 5: Delete existing jobs and pods
+    - name: Delete existing jobs and pods
+      run: |
+        kubectl delete jobs --all
+        kubectl delete pods --all
+
+    # Step 6: Generate Kubernetes Jobs for hyperparameter tuning
     - name: Generate Kubernetes Jobs
       shell: pwsh
       run: |
         chmod +x scripts/generate-jobs.ps1
         ./scripts/generate-jobs.ps1
 
-    # Step 6: Wait for Jobs to complete
+    # Step 7: Wait for Jobs to complete
     - name: Wait for Jobs to complete
       run: |
         kubectl wait --for=condition=complete --timeout=1800s job --all || true
 
-    # Step 7: Check Job and Pod Status
+    # Step 8: Check Job and Pod Status
     - name: Check Job and Pod Status
       run: |
         kubectl get jobs
         kubectl get pods
 
-    # Step 8: Collect results and find the best model
+    # Step 9: Retrieve logs of failed pods
+    - name: Retrieve logs of failed pods
+      run: |
+        for pod in $(kubectl get pods --field-selector=status.phase=Failed -o jsonpath='{.items[*].metadata.name}'); do
+          echo "Logs for pod $pod:"
+          kubectl logs $pod
+        done
+
+    # Step 10: Collect results and find the best model
     - name: Collect results
       run: |
         minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
@@ -82,7 +96,7 @@ jobs:
         echo "Best MSE: $BEST_MSE"
         echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
 
-    # Step 9: Retrieve old model's best MSE score
+    # Step 11: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
       run: |
         OLD_BEST_MSE=$(cat old_best_mse.txt)
