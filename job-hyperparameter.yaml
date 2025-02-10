@@ -17,13 +17,12 @@ spec:
     spec:
       containers:
       - name: xgb-trainer
-        image: mannarn/hp-xgboost
-        imagePullPolicy: IfNotPresent
+        image: mannarn/model-train:latest
         args:
         - "--n_estimators={{N_ESTIMATORS}}"
         - "--max_depth={{MAX_DEPTH}}"
-        - "--learning_rate={{LEARNING_RATE_RAW}}"
-        - "--subsample={{SUBSAMPLE_RAW}}"
+        - "--learning_rate={{LEARNING_RATE}}"
+        - "--subsample={{SUBSAMPLE}}"
         volumeMounts:
         - name: data-volume
           mountPath: /data
