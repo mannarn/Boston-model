@@ -14,7 +14,7 @@ foreach ($n in $n_estimators_list) {
                 $sanitized_sub = "$sub".Replace(".", "-")
 
                 # Read template and replace placeholders
-                $yamlContent = (Get-Content "C:/Users/manna/Desktop/Boston-model/job-hyperparameter.yaml" -Raw) `
+                $yamlContent = (Get-Content job-hyperparameter.yaml -Raw) `
                     -replace '\{\{N_ESTIMATORS\}\}', $n `
                     -replace '\{\{MAX_DEPTH\}\}\}', $depth `
                     -replace '\{\{LEARNING_RATE\}\}\}', $sanitized_lr `
