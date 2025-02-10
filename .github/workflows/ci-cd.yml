@@ -25,7 +25,7 @@ jobs:
         curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
         chmod +x minikube
         sudo mv minikube /usr/local/bin/
-        minikube start --driver=docker
+        minikube start --driver=docker --cpus=4 --memory=8192mb
 
     # Step 5: Generate Kubernetes Jobs for hyperparameter tuning
     - name: Generate Kubernetes Jobs
