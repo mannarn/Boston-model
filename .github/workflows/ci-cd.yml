@@ -115,6 +115,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    # Step 3: Log in to Docker Hub
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: mannarn
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+
     # Step 2: Build and push API Docker image
     - name: Build and push API Docker image
       if: env.BEST_MSE < env.OLD_BEST_MSE
