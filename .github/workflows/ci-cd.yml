@@ -18,7 +18,7 @@ jobs:
     - name: Log in to Docker Hub
       uses: docker/login-action@v1
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
+        username: mannarn
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     # Step 4: Build and push Train Docker image
@@ -111,7 +111,6 @@ jobs:
         file: Docker/Dockerfile.api
         push: true
         tags: mannarn/model-api:latest
-        secrets: ${{ secrets.DOCKERHUB_TOKEN }}
 
     # Step 3: Deploy to Kubernetes
     - name: Deploy to Kubernetes
