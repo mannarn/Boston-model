@@ -21,8 +21,8 @@ spec:
         args:
         - "--n_estimators={{N_ESTIMATORS}}"
         - "--max_depth={{MAX_DEPTH}}"
-        - "--learning_rate={{LEARNING_RATE}}"
-        - "--subsample={{SUBSAMPLE}}"
+        - "--learning_rate={{LEARNING_RATE_RAW}}"
+        - "--subsample={{SUBSAMPLE_RAW}}"
         volumeMounts:
         - name: data-volume
           mountPath: /data

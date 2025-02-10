@@ -72,7 +72,7 @@ jobs:
     # Step 7: Wait for Jobs to complete
     - name: Wait for Jobs to complete
       run: |
-        kubectl wait --for=condition=complete --timeout=1800s job --all || true
+        kubectl wait --for=condition=complete --timeout=1000s job --all || true
 
     # Step 8: Check Job and Pod Status
     - name: Check Job and Pod Status
