@@ -2,13 +2,10 @@ FROM python:3.8-slim
 
 WORKDIR /app
 
-# Copy files from the build context
-COPY requirements.txt .
+COPY ../requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY app.py .
-# Optionally, copy the best model file if it's already present;
-# otherwise, your pipeline should update this file later.
-COPY best_model.joblib .
+COPY ../app.py .
+COPY ../data/best_model.joblib /data/best_model.joblib  # Update the path and model name as needed
 
 CMD ["python", "app.py"]

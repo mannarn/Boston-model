@@ -122,7 +122,11 @@ jobs:
         username: mannarn
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Step 3: Build and push API Docker image
+    # Step 3: Copy best model file
+    - name: Copy best model file
+      run: cp /path/to/generated/best_model.joblib data/best_model.joblib  # Update the path as needed
+
+    # Step 4: Build and push API Docker image
     - name: Build and push API Docker image
       uses: docker/build-push-action@v2
       with:
