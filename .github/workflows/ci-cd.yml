@@ -107,7 +107,7 @@ jobs:
         echo "Old Best MSE: $OLD_BEST_MSE"
         echo "OLD_BEST_MSE=$OLD_BEST_MSE" >> $GITHUB_ENV
 
-  deploy:
+  build-and-push-api:
     runs-on: ubuntu-latest
     needs: hyperparameter-tuning
     steps:
@@ -115,17 +115,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Step 3: Log in to Docker Hub
+    # Step 2: Log in to Docker Hub
     - name: Log in to Docker Hub
       uses: docker/login-action@v1
       with:
         username: mannarn
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-
-    # Step 2: Build and push API Docker image
+    # Step 3: Build and push API Docker image
     - name: Build and push API Docker image
-      if: env.BEST_MSE < env.OLD_BEST_MSE
       uses: docker/build-push-action@v2
       with:
         context: .
@@ -133,7 +131,15 @@ jobs:
         push: true
         tags: mannarn/model-api:latest
 
-    # Step 3: Deploy to Kubernetes
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push-api
+    steps:
+    # Step 1: Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Step 2: Deploy to Kubernetes
     - name: Deploy to Kubernetes
       if: env.BEST_MSE < env.OLD_BEST_MSE
       uses: azure/k8s-deploy@v1
@@ -142,7 +148,7 @@ jobs:
         manifests: kubernetes/deployment.yaml
         images: mannarn/model-api:latest
 
-    # Step 4: Update old model's best MSE score if new model is better
+    # Step 3: Update old model's best MSE score if new model is better
     - name: Update old model's best MSE score
       if: env.BEST_MSE < env.OLD_BEST_MSE
       env:
