@@ -16,15 +16,11 @@ foreach ($n in $n_estimators_list) {
                 # Read template and replace placeholders
                 $yamlContent = (Get-Content job-hyperparameter.yaml -Raw) `
                     -replace '\{\{N_ESTIMATORS\}\}', $n `
-                    -replace '\{\{MAX_DEPTH\}\}\}', $depth `
-                    -replace '\{\{LEARNING_RATE\}\}\}', $sanitized_lr `
-                    -replace '\{\{SUBSAMPLE\}\}\}', $sanitized_sub `
+                    -replace '\{\{MAX_DEPTH\}\}', $depth `
+                    -replace '\{\{LEARNING_RATE\}\}', $sanitized_lr `
+                    -replace '\{\{SUBSAMPLE\}\}', $sanitized_sub `
                     -replace '\{\{LEARNING_RATE_RAW\}\}', $lr `
                     -replace '\{\{SUBSAMPLE_RAW\}\}', $sub
-
-                # Debug statement to verify replacement
-                Write-Output "YAML Content:"
-                Write-Output $yamlContent
 
                 # Submit job
                 Write-Output "Submitting job: trial-$n-$depth-$sanitized_lr-$sanitized_sub"
