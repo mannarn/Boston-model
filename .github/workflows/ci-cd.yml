@@ -37,7 +37,7 @@ jobs:
     # Step 6: Wait for Jobs to complete
     - name: Wait for Jobs to complete
       run: |
-        kubectl wait --for=condition=complete --timeout=1800s job --all
+        kubectl wait --for=condition=complete --timeout=7200s job --all
 
     # Step 7: Collect results and find the best model
     - name: Collect results
