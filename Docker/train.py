@@ -4,9 +4,7 @@ from sklearn.model_selection import train_test_split
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_squared_error
 import joblib
-import hashlib
 
-# Load dataset
 data_url = "http://lib.stat.cmu.edu/datasets/boston"
 raw_df = pd.read_csv(data_url, sep="\s+", skiprows=22, header=None)
 data = np.hstack([raw_df.values[::2, :], raw_df.values[1::2, :2]])
@@ -25,7 +23,6 @@ y = boston_df['MEDV']
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Get hyperparameters from command line
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_estimators", type=int, required=True)
@@ -34,7 +31,6 @@ parser.add_argument("--learning_rate", type=float, required=True)
 parser.add_argument("--subsample", type=float, required=True)
 args = parser.parse_args()
 
-# Train model
 model = XGBRegressor(
     n_estimators=args.n_estimators,
     max_depth=args.max_depth,
@@ -43,15 +39,13 @@ model = XGBRegressor(
 )
 model.fit(X_train, y_train)
 
-# Evaluate
 y_pred = model.predict(X_test)
 mse = mean_squared_error(y_test, y_pred)
 print(f"MSE: {mse}")
 
-# Save model and metrics
 model_filename = f"/data/model_{mse}.joblib"
 metrics_filename = f"/data/metrics_{mse}.txt"
 
 joblib.dump(model, model_filename)
 with open(metrics_filename, "w") as f:
-    f.write(str(mse))
+    f.write(str(mse)+"\n")

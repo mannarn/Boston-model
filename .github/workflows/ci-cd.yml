@@ -92,13 +92,16 @@ jobs:
       run: |
         minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
         BEST_MSE=$(sort -n all_metrics.txt | head -n 1)
-        BEST_MODEL_FILE=$(grep -l "$BEST_MSE" /data/metrics_*.txt | sed 's/metrics_/model_/;s/.txt/.joblib/')
+        #BEST_MODEL_FILE=$(grep -l "$BEST_MSE" /data/metrics_*.txt | sed 's/metrics_/model_/;s/.txt/.joblib/')
+        BEST_MODEL=$(minikube ssh "ls /data/model_*.joblib | awk -F'[_ .]' '{print $3, $0}' | sort -n | head -1 | cut -d' ' -f2")
+        echo "Best Model: $BEST_MODEL"
+        minikube ssh "cat $BEST_MODEL" > Docker/best_model.joblib
         echo "Best MSE: $BEST_MSE"
-        echo "Best Model File: $BEST_MODEL_FILE"
+        #echo "Best Model File: $BEST_MODEL"
         echo "::set-output name=best_mse::$BEST_MSE"
-        echo "::set-output name=best_model_file::$BEST_MODEL_FILE"
+        #echo "::set-output name=best_model_file::$BEST_MODEL"
         echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
-        echo "BEST_MODEL_FILE=$BEST_MODEL_FILE" >> $GITHUB_ENV
+        #echo "BEST_MODEL=$BEST_MODEL" >> $GITHUB_ENV
 
     # Step 10: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
@@ -120,6 +123,11 @@ jobs:
     # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v2
+    
+    # Step 3: Set up Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+        
 
     # Step 2: Log in to Docker Hub
     - name: Log in to Docker Hub
@@ -128,12 +136,6 @@ jobs:
         username: mannarn
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Step 3: Copy best model file into Docker folder
-    - name: Copy best model file into Docker folder
-      run: |
-        best_model_file=${{ needs.hyperparameter-tuning.outputs.best_model_file }}
-        echo "Copying best model file: /data/${best_model_file} to Docker/best_model.joblib"
-        minikube ssh "cat /data/${best_model_file}" > Docker/best_model.joblib
 
     # Step 4: Build and push API Docker image
     - name: Build and push API Docker image
