@@ -1,27 +1,20 @@
-name: Model CI/CD Pipeline with Hyperparameter Tuning
+name: Model CI/CD Pipeline with Hyperparameter Tuning (Windows)
 
 on: [push]
 
 jobs:
   build-and-train:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
-    # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Step 2: Set up Docker Buildx
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-
-    # Step 3: Log in to Docker Hub
     - name: Log in to Docker Hub
       uses: docker/login-action@v1
       with:
         username: mannarn
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Step 4: Build and push Train Docker image
     - name: Build and push Train Docker image
       uses: docker/build-push-action@v2
       with:
@@ -31,152 +24,115 @@ jobs:
         tags: mannarn/model-train:latest
 
   hyperparameter-tuning:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: build-and-train
     outputs:
       best_mse: ${{ steps.collect_results.outputs.best_mse }}
       best_model_file: ${{ steps.collect_results.outputs.best_model_file }}
       old_best_mse: ${{ steps.retrieve_old.outputs.old_best_mse }}
     steps:
-    # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Step 2: Set up Python
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.8'
 
-    # Step 3: Install dependencies
     - name: Install dependencies
       run: pip install -r requirements.txt
 
-    # Step 4: Set up Minikube
     - name: Set up Minikube
+      shell: pwsh
       run: |
-        curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-        chmod +x minikube
-        sudo mv minikube /usr/local/bin/
-        minikube start --driver=docker --cpus=4 --memory=8192mb
+        Invoke-WebRequest -Uri "https://storage.googleapis.com/minikube/releases/latest/minikube-windows-amd64.exe" -OutFile "C:\minikube.exe"
+        Move-Item -Path "C:\minikube.exe" -Destination "C:\Windows\System32\minikube.exe"
+        minikube start --driver=hyperv --cpus=4 --memory=8192mb
 
-    # Step 5: Generate Kubernetes Jobs for hyperparameter tuning
     - name: Generate Kubernetes Jobs
       shell: pwsh
       run: |
-        chmod +x scripts/generate-jobs.ps1
-        ./scripts/generate-jobs.ps1
+        powershell -ExecutionPolicy Bypass -File scripts/generate-jobs.ps1
 
-    # Step 6: Wait for Jobs to complete
     - name: Wait for Jobs to complete
+      shell: pwsh
       run: |
-        kubectl wait --for=condition=complete --timeout=1000s job --all || true
+        kubectl wait --for=condition=complete --timeout=1000s job --all || $true
 
-    # Step 7: Check Job and Pod Status
     - name: Check Job and Pod Status
+      shell: pwsh
       run: |
         kubectl get jobs
         kubectl get pods
 
-    # Step 8: Retrieve logs of failed pods
     - name: Retrieve logs of failed pods
+      shell: pwsh
       run: |
-        for pod in $(kubectl get pods --field-selector=status.phase=Failed -o jsonpath='{.items[*].metadata.name}'); do
-          echo "Logs for pod $pod:"
-          kubectl logs $pod
-        done
+        $pods = kubectl get pods --field-selector=status.phase=Failed -o jsonpath='{.items[*].metadata.name}'
+        foreach ($pod in $pods) {
+            Write-Output "Logs for pod $pod:"
+            kubectl logs $pod
+        }
 
-    # Step 9: Collect results and find the best model
     - name: Collect results
       id: collect_results
+      shell: pwsh
       run: |
-        echo "Listing files in /data directory:"
-        minikube ssh "ls -l /data"
-        
-        echo "Retrieving metrics files:"
         minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
-        
-        # Check if the metrics file exists and is not empty
-        if [ ! -s all_metrics.txt ]; then
-          echo "No metrics files found!"
-          exit 1
-        fi
-        
-        echo "Calculating best MSE:"
-        BEST_MSE=$(sort -n all_metrics.txt | head -n 1)
-        
-        echo "Finding best model file:"
-        BEST_MODEL=$(minikube ssh "ls /data/model_*.joblib 2>/dev/null | sort -t '_' -k2,2n | head -1")
+        $BEST_MSE = Get-Content all_metrics.txt | Sort-Object | Select-Object -First 1
+        $BEST_MODEL = minikube ssh "ls /data/model_*.joblib" | Sort-Object | Select-Object -First 1
 
-        # Check if a model file is found
-        if [ -z "$BEST_MODEL" ]; then
-          echo "No model file found in /data/"
-          exit 1
-        fi
+        if (-not $BEST_MODEL) {
+            Write-Output "No model file found in /data/"
+            exit 1
+        }
 
-        echo "Best MSE: $BEST_MSE"
-        echo "Best Model: $BEST_MODEL"
+        Write-Output "Best MSE: $BEST_MSE"
+        Write-Output "Best Model: $BEST_MODEL"
 
-        # Copy the best model file from Minikube to the Docker folder
         minikube ssh "cat $BEST_MODEL" > Docker/best_model.joblib
 
-        # Store values in environment variables
-        echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
-        echo "BEST_MODEL_FILE=$BEST_MODEL" >> $GITHUB_ENV
-
-        # Set output variables
         echo "::set-output name=best_mse::$BEST_MSE"
         echo "::set-output name=best_model_file::$BEST_MODEL"
 
-    # Step 10: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
       id: retrieve_old
+      shell: pwsh
       run: |
-        if [ -f old_best_mse.txt ]; then
-          OLD_BEST_MSE=$(cat old_best_mse.txt)
-        else
-          OLD_BEST_MSE=999999
-        fi
-        echo "Old Best MSE: $OLD_BEST_MSE"
+        if (Test-Path "old_best_mse.txt") {
+            $OLD_BEST_MSE = Get-Content old_best_mse.txt
+        } else {
+            $OLD_BEST_MSE = 999999
+        }
+        Write-Output "Old Best MSE: $OLD_BEST_MSE"
         echo "::set-output name=old_best_mse::$OLD_BEST_MSE"
-        echo "OLD_BEST_MSE=$OLD_BEST_MSE" >> $GITHUB_ENV
 
   build-and-push-api:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: hyperparameter-tuning
     steps:
-    # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Step 2: Log in to Docker Hub
     - name: Log in to Docker Hub
       uses: docker/login-action@v1
       with:
         username: mannarn
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Step 3: Copy best model file into Docker folder
     - name: Copy best model file into Docker folder
+      shell: pwsh
       run: |
-        # Retrieve the best model file from the hyperparameter tuning outputs.
-        best_model_file=${{ needs.hyperparameter-tuning.outputs.best_model_file }}
-        
-        # Check if the best_model_file variable is empty.
-        if [ -z "$best_model_file" ]; then
-          echo "Error: BEST_MODEL_FILE variable is empty. Cannot locate the best model file."
-          exit 1
-        fi
-        
-        echo "Copying best model file: /data/${best_model_file} to Docker/best_model.joblib"
-        
-        # Optionally list the /data directory on the VM for debugging:
-        minikube ssh "ls -l /data"
-        
-        # Copy the model file from the VM shared memory (/data) to the Docker folder.
-        minikube ssh "cat /data/${best_model_file}" > Docker/best_model.joblib
+        $best_model_file = "${{ needs.hyperparameter-tuning.outputs.best_model_file }}"
 
-    # Step 4: Build and push API Docker image
+        if (-not $best_model_file) {
+            Write-Output "Error: BEST_MODEL_FILE variable is empty."
+            exit 1
+        }
+
+        Write-Output "Copying best model file: /data/$best_model_file to Docker/best_model.joblib"
+        minikube ssh "cat /data/$best_model_file" > Docker/best_model.joblib
+
     - name: Build and push API Docker image
       uses: docker/build-push-action@v2
       with:
@@ -186,17 +142,15 @@ jobs:
         tags: mannarn/model-api:latest
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: build-and-push-api
     env:
       BEST_MSE: ${{ needs.hyperparameter-tuning.outputs.best_mse }}
       OLD_BEST_MSE: ${{ needs.hyperparameter-tuning.outputs.old_best_mse }}
     steps:
-    # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v2
 
-    # Step 2: Deploy to Kubernetes
     - name: Deploy to Kubernetes
       if: ${{ fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
       uses: azure/k8s-deploy@v1
@@ -205,15 +159,15 @@ jobs:
         manifests: kubernetes/deployment.yaml
         images: mannarn/model-api:latest
 
-    # Step 3: Update old model's best MSE score if new model is better
     - name: Update old model's best MSE score
       if: ${{ fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: pwsh
       run: |
-        echo "$BEST_MSE" > old_best_mse.txt
+        Set-Content -Path old_best_mse.txt -Value $env:BEST_MSE
         git config --global user.email "mannarmannan02@gmail.com"
         git config --global user.name "mannarn"
         git add old_best_mse.txt
         git commit -m "Update old best MSE score"
-        git push --force https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+        git push --force https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
