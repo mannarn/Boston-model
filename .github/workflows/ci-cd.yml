@@ -6,120 +6,143 @@ jobs:
   build-and-train:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    # Step 1: Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+    # Step 2: Set up Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: mannarn
-          password: ${{ secrets.DOCKER_PASSWORD }}
+    # Step 3: Log in to Docker Hub
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: mannarn
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Train Docker image
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: Docker/Dockerfile.train
-          push: true
-          tags: mannarn/model-train:latest
+    # Step 4: Build and push Train Docker image
+    - name: Build and push Train Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: Docker/Dockerfile.train
+        push: true
+        tags: mannarn/model-train:latest
 
   hyperparameter-tuning:
     runs-on: ubuntu-latest
     needs: build-and-train
     outputs:
       best_mse: ${{ steps.collect_results.outputs.best_mse }}
+      best_model_file: ${{ steps.collect_results.outputs.best_model_file }}
       old_best_mse: ${{ steps.retrieve_old.outputs.old_best_mse }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    # Step 1: Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
+    # Step 2: Set up Python
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: pip install -r requirements.txt
 
-      - name: Set up Minikube
-        run: |
-          curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-          chmod +x minikube
-          sudo mv minikube /usr/local/bin/
-          minikube start --driver=docker --cpus=4 --memory=8192mb
+    # Step 4: Set up Minikube
+    - name: Set up Minikube
+      run: |
+        curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        chmod +x minikube
+        sudo mv minikube /usr/local/bin/
+        minikube start --driver=docker --cpus=4 --memory=8192mb
 
-      - name: Generate Kubernetes Jobs for hyperparameter tuning
-        shell: pwsh
-        run: |
-          chmod +x scripts/generate-jobs.ps1
-          ./scripts/generate-jobs.ps1
+    # Step 5: Generate Kubernetes Jobs for hyperparameter tuning
+    - name: Generate Kubernetes Jobs
+      shell: pwsh
+      run: |
+        chmod +x scripts/generate-jobs.ps1
+        ./scripts/generate-jobs.ps1
 
-      - name: Wait for Jobs to complete
-        run: |
-          kubectl wait --for=condition=complete --timeout=1000s job --all || true
+    # Step 6: Wait for Jobs to complete
+    - name: Wait for Jobs to complete
+      run: |
+        kubectl wait --for=condition=complete --timeout=1000s job --all || true
 
-      - name: Check Job and Pod Status
-        run: |
-          kubectl get jobs
-          kubectl get pods
+    # Step 7: Check Job and Pod Status
+    - name: Check Job and Pod Status
+      run: |
+        kubectl get jobs
+        kubectl get pods
 
-      - name: Retrieve logs of failed pods
-        run: |
-          for pod in $(kubectl get pods --field-selector=status.phase=Failed -o jsonpath='{.items[*].metadata.name}'); do
-            echo "Logs for pod $pod:"
-            kubectl logs $pod
-          done
+    # Step 8: Retrieve logs of failed pods
+    - name: Retrieve logs of failed pods
+      run: |
+        for pod in $(kubectl get pods --field-selector=status.phase=Failed -o jsonpath='{.items[*].metadata.name}'); do
+          echo "Logs for pod $pod:"
+          kubectl logs $pod
+        done
 
-      - name: Collect results and find the best model
-        id: collect_results
-        run: |
-          minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
-          BEST_MSE=$(sort -n all_metrics.txt | head -n 1)
-          echo "Best MSE: $BEST_MSE"
-          echo "::set-output name=best_mse::$BEST_MSE"
-          echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
+    # Step 9: Collect results and find the best model
+    - name: Collect results
+      id: collect_results
+      run: |
+        minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
+        BEST_MSE=$(sort -n all_metrics.txt | head -n 1)
+        BEST_MODEL_FILE=$(grep -l "$BEST_MSE" /data/metrics_*.txt | sed 's/metrics_/model_/;s/.txt/.joblib/')
+        echo "Best MSE: $BEST_MSE"
+        echo "Best Model File: $BEST_MODEL_FILE"
+        echo "::set-output name=best_mse::$BEST_MSE"
+        echo "::set-output name=best_model_file::$BEST_MODEL_FILE"
+        echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
+        echo "BEST_MODEL_FILE=$BEST_MODEL_FILE" >> $GITHUB_ENV
 
-      - name: Retrieve old model's best MSE score
-        id: retrieve_old
-        run: |
-          if [ -f old_best_mse.txt ]; then
-            OLD_BEST_MSE=$(cat old_best_mse.txt)
-          else
-            OLD_BEST_MSE=999999
-          fi
-          echo "Old Best MSE: $OLD_BEST_MSE"
-          echo "::set-output name=old_best_mse::$OLD_BEST_MSE"
-          echo "OLD_BEST_MSE=$OLD_BEST_MSE" >> $GITHUB_ENV
+    # Step 10: Retrieve old model's best MSE score
+    - name: Retrieve old model's best MSE score
+      id: retrieve_old
+      run: |
+        if [ -f old_best_mse.txt ]; then
+          OLD_BEST_MSE=$(cat old_best_mse.txt)
+        else
+          OLD_BEST_MSE=999999
+        fi
+        echo "Old Best MSE: $OLD_BEST_MSE"
+        echo "::set-output name=old_best_mse::$OLD_BEST_MSE"
+        echo "OLD_BEST_MSE=$OLD_BEST_MSE" >> $GITHUB_ENV
 
   build-and-push-api:
     runs-on: ubuntu-latest
     needs: hyperparameter-tuning
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    # Step 1: Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: mannarn
-          password: ${{ secrets.DOCKER_PASSWORD }}
+    # Step 2: Log in to Docker Hub
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: mannarn
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Copy best model file into Docker folder
-        run: |
-          best_mse=${{ needs.hyperparameter-tuning.outputs.best_mse }}
-          echo "Copying best model file: /data/model_${best_mse}.joblib to Docker/best_model.joblib"
-          minikube ssh "cat /data/model_${best_mse}.joblib" > Docker/best_model.joblib
+    # Step 3: Copy best model file into Docker folder
+    - name: Copy best model file into Docker folder
+      run: |
+        best_model_file=${{ needs.hyperparameter-tuning.outputs.best_model_file }}
+        echo "Copying best model file: /data/${best_model_file} to Docker/best_model.joblib"
+        minikube ssh "cat /data/${best_model_file}" > Docker/best_model.joblib
 
-      - name: Build and push API Docker image
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: Docker/Dockerfile.api
-          push: true
-          tags: mannarn/model-api:latest
+    # Step 4: Build and push API Docker image
+    - name: Build and push API Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        file: Docker/Dockerfile.api
+        push: true
+        tags: mannarn/model-api:latest
 
   deploy:
     runs-on: ubuntu-latest
@@ -128,25 +151,28 @@ jobs:
       BEST_MSE: ${{ needs.hyperparameter-tuning.outputs.best_mse }}
       OLD_BEST_MSE: ${{ needs.hyperparameter-tuning.outputs.old_best_mse }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    # Step 1: Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Deploy to Kubernetes
-        if: ${{ fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
-        uses: azure/k8s-deploy@v1
-        with:
-          namespace: default
-          manifests: kubernetes/deployment.yaml
-          images: mannarn/model-api:latest
+    # Step 2: Deploy to Kubernetes
+    - name: Deploy to Kubernetes
+      if: ${{ fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
+      uses: azure/k8s-deploy@v1
+      with:
+        namespace: default
+        manifests: kubernetes/deployment.yaml
+        images: mannarn/model-api:latest
 
-      - name: Update old model's best MSE score
-        if: ${{ fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "$BEST_MSE" > old_best_mse.txt
-          git config --global user.email "mannarmannan02@gmail.com"
-          git config --global user.name "mannarn"
-          git add old_best_mse.txt
-          git commit -m "Update old best MSE score"
-          git push --force https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+    # Step 3: Update old model's best MSE score if new model is better
+    - name: Update old model's best MSE score
+      if: ${{ fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        echo "$BEST_MSE" > old_best_mse.txt
+        git config --global user.email "mannarmannan02@gmail.com"
+        git config --global user.name "mannarn"
+        git add old_best_mse.txt
+        git commit -m "Update old best MSE score"
+        git push --force https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
