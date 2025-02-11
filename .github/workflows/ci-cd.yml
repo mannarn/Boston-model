@@ -90,18 +90,22 @@ jobs:
     - name: Collect results
       id: collect_results
       run: |
-        echo "Listing files in /data directory:"
-        minikube ssh "ls -l /data"
-        
-        echo "Retrieving metrics files:"
+        # Retrieve all metrics files
         minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
         
-        echo "Calculating best MSE:"
+        # Check if the metrics file exists and is not empty
+        if [ ! -s all_metrics.txt ]; then
+          echo "No metrics files found!"
+          exit 1
+        fi
+        
+        # Find the best MSE
         BEST_MSE=$(sort -n all_metrics.txt | head -n 1)
         
-        echo "Finding best model file:"
-        BEST_MODEL=$(minikube ssh "ls /data/model_*.joblib | awk -F'[_ .]' '{print \$3, \$0}' | sort -n | head -1 | cut -d' ' -f2")
+        # Find the best model file corresponding to the lowest MSE
+        BEST_MODEL=$(minikube ssh "ls /data/model_*.joblib | awk -F'[_ .]' '{print $3, $0}' | sort -n | head -1 | cut -d' ' -f2")
 
+        # Check if a model file is found
         if [ -z "$BEST_MODEL" ]; then
           echo "No model file found in /data/"
           exit 1
@@ -113,9 +117,7 @@ jobs:
         # Copy the best model file from Minikube to the Docker folder
         minikube ssh "cat $BEST_MODEL" > Docker/best_model.joblib
 
-        # Set output variables
-        echo "::set-output name=best_mse::$BEST_MSE"
-        echo "::set-output name=best_model_file::$BEST_MODEL"
+        # Store values in environment variables
         echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
         echo "BEST_MODEL_FILE=$BEST_MODEL" >> $GITHUB_ENV
 
@@ -160,10 +162,7 @@ jobs:
         fi
         
         echo "Copying best model file: /data/${best_model_file} to Docker/best_model.joblib"
-        
-        # Optionally list the /data directory on the VM for debugging:
-        minikube ssh "ls -l /data"
-        
+
         # Copy the model file from the VM shared memory (/data) to the Docker folder.
         minikube ssh "cat /data/${best_model_file}" > Docker/best_model.joblib
 
