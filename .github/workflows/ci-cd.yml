@@ -90,7 +90,10 @@ jobs:
     - name: Collect results
       id: collect_results
       run: |
-        # Retrieve all metrics files
+        echo "Listing files in /data directory:"
+        minikube ssh "ls -l /data"
+        
+        echo "Retrieving metrics files:"
         minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
         
         # Check if the metrics file exists and is not empty
@@ -99,11 +102,11 @@ jobs:
           exit 1
         fi
         
-        # Find the best MSE
+        echo "Calculating best MSE:"
         BEST_MSE=$(sort -n all_metrics.txt | head -n 1)
         
-        # Find the best model file corresponding to the lowest MSE
-        BEST_MODEL=$(minikube ssh "ls /data/model_*.joblib | awk -F'[_ .]' '{print $3, $0}' | sort -n | head -1 | cut -d' ' -f2")
+        echo "Finding best model file:"
+        BEST_MODEL=$(minikube ssh "ls /data/model_*.joblib 2>/dev/null | sort -t '_' -k2,2n | head -1")
 
         # Check if a model file is found
         if [ -z "$BEST_MODEL" ]; then
@@ -120,6 +123,10 @@ jobs:
         # Store values in environment variables
         echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
         echo "BEST_MODEL_FILE=$BEST_MODEL" >> $GITHUB_ENV
+
+        # Set output variables
+        echo "::set-output name=best_mse::$BEST_MSE"
+        echo "::set-output name=best_model_file::$BEST_MODEL"
 
     # Step 10: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
@@ -162,7 +169,10 @@ jobs:
         fi
         
         echo "Copying best model file: /data/${best_model_file} to Docker/best_model.joblib"
-
+        
+        # Optionally list the /data directory on the VM for debugging:
+        minikube ssh "ls -l /data"
+        
         # Copy the model file from the VM shared memory (/data) to the Docker folder.
         minikube ssh "cat /data/${best_model_file}" > Docker/best_model.joblib
 
