@@ -158,7 +158,7 @@ jobs:
 
     # Step 3: Update old model's best MSE score if new model is better
     - name: Update old model's best MSE score
-      if: ${{ fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
+      if: ${{ env.BEST_MSE != '' && env.OLD_BEST_MSE != '' && fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
