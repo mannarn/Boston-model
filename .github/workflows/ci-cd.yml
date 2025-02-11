@@ -91,13 +91,31 @@ jobs:
     # Step 10: Collect results and find the best model
     - name: Collect results
       run: |
-        minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
-        BEST_MSE=$(sort -n all_metrics.txt | head -n 1)
-        BEST_MODEL_FILE=$(grep -l "$BEST_MSE" /data/metrics_*.txt | sed 's/metrics_/model_/;s/.txt/.joblib/')
-        echo "Best MSE: $BEST_MSE"
-        echo "Best Model File: $BEST_MODEL_FILE"
+        # Get all metric files
+        minikube ssh "ls /data/metrics_*.txt" > metric_files.txt
+
+        # Find best MSE
+        BEST_MSE=999999
+        BEST_FILE=""
+
+        while read -r line; do
+          current_mse=$(minikube ssh "cat $line")
+          if (( $(echo "$current_mse < $BEST_MSE" | bc -l) )); then
+            BEST_MSE=$current_mse
+            BEST_FILE=$(basename $line)
+          fi
+        done < metric_files.txt
+
+        # Extract unique ID from best metric file
+        FILE_ID=${BEST_FILE#metrics_}
+        FILE_ID=${FILE_ID%.txt}
+
+        # Save model path
+        echo "BEST_MODEL_FILE=model_${FILE_ID}.joblib" >> $GITHUB_ENV
         echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
-        echo "BEST_MODEL_FILE=$BEST_MODEL_FILE" >> $GITHUB_ENV
+
+        # Copy model from Minikube to workspace
+        minikube ssh "cat /data/model_${FILE_ID}.joblib" > Docker/best_model.joblib
 
     # Step 11: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
@@ -109,6 +127,20 @@ jobs:
         fi
         echo "Old Best MSE: $OLD_BEST_MSE"
         echo "OLD_BEST_MSE=$OLD_BEST_MSE" >> $GITHUB_ENV
+
+    # Step 12: Debug Best Model
+    - name: Debug Best Model
+      run: |
+        echo "Best MSE: $BEST_MSE"
+        echo "Best Model File: $BEST_MODEL_FILE"
+        ls -lh Docker/best_model.joblib
+
+    # Step 13: Verify Model Integrity
+    - name: Verify Model Integrity
+      run: |
+        minikube ssh "sha256sum /data/$BEST_MODEL_FILE" > minikube_checksum
+        sha256sum Docker/best_model.joblib > local_checksum
+        diff minikube_checksum local_checksum
 
   build-and-push-api:
     runs-on: ubuntu-latest
@@ -127,7 +159,7 @@ jobs:
 
     # Step 3: Copy best model file
     - name: Copy best model file
-      run: cp /data/${{ env.BEST_MODEL_FILE }} Docker/best_model.joblib  # Update the path as needed
+      run: cp Docker/best_model.joblib Docker/best_model.joblib  # Ensure the path is correct
 
     # Step 4: Build and push API Docker image
     - name: Build and push API Docker image
