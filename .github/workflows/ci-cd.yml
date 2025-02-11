@@ -107,9 +107,9 @@ jobs:
 
         # Set output variables
         echo "::set-output name=best_mse::$BEST_MSE"
-        echo "::set-output name=best_model_file::$BEST_MODEL"
+        #echo "::set-output name=best_model_file::$BEST_MODEL"
         echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
-        echo "BEST_MODEL_FILE=$BEST_MODEL" >> $GITHUB_ENV
+        #echo "BEST_MODEL_FILE=$BEST_MODEL" >> $GITHUB_ENV
 
     # Step 10: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
@@ -139,26 +139,7 @@ jobs:
         username: mannarn
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Step 3: Copy best model file into Docker folder
-    - name: Copy best model file into Docker folder
-      run: |
-        # Retrieve the best model file from the hyperparameter tuning outputs.
-        best_model_file=${{ needs.hyperparameter-tuning.outputs.best_model_file }}
-        
-        # Check if the best_model_file variable is empty.
-        if [ -z "$best_model_file" ]; then
-          echo "Error: BEST_MODEL_FILE variable is empty. Cannot locate the best model file."
-          exit 1
-        fi
-        
-        echo "Copying best model file: /data/${best_model_file} to Docker/best_model.joblib"
-        
-        # Optionally list the /data directory on the VM for debugging:
-        minikube ssh "ls -l /data"
-        
-        # Copy the model file from the VM shared memory (/data) to the Docker folder.
-        minikube ssh "cat /data/${best_model_file}" > Docker/best_model.joblib
-
+    
     # Step 4: Build and push API Docker image
     - name: Build and push API Docker image
       uses: docker/build-push-action@v2
