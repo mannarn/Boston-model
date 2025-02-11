@@ -34,9 +34,6 @@ parser.add_argument("--learning_rate", type=float, required=True)
 parser.add_argument("--subsample", type=float, required=True)
 args = parser.parse_args()
 
-# Generate a unique ID for this model
-unique_id = hashlib.md5(f"{args.n_estimators}-{args.max_depth}-{args.learning_rate}-{args.subsample}".encode()).hexdigest()[:8]
-
 # Train model
 model = XGBRegressor(
     n_estimators=args.n_estimators,
@@ -52,8 +49,8 @@ mse = mean_squared_error(y_test, y_pred)
 print(f"MSE: {mse}")
 
 # Save model and metrics
-model_filename = f"/data/model_{unique_id}.joblib"
-metrics_filename = f"/data/metrics_{unique_id}.txt"
+model_filename = f"/data/model_{mse}.joblib"
+metrics_filename = f"/data/metrics_{mse}.txt"
 
 joblib.dump(model, model_filename)
 with open(metrics_filename, "w") as f:
