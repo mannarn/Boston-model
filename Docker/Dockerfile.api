@@ -3,5 +3,5 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY app.py .
-COPY best_model.joblib .
+COPY Docker/best_model.joblib .
 CMD ["python", "app.py"]
