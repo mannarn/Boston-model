@@ -90,8 +90,16 @@ jobs:
     - name: Collect results
       id: collect_results
       run: |
+        echo "Listing files in /data directory:"
+        minikube ssh "ls -l /data"
+        
+        echo "Retrieving metrics files:"
         minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
+        
+        echo "Calculating best MSE:"
         BEST_MSE=$(sort -n all_metrics.txt | head -n 1)
+        
+        echo "Finding best model file:"
         BEST_MODEL=$(minikube ssh "ls /data/model_*.joblib | awk -F'[_ .]' '{print \$3, \$0}' | sort -n | head -1 | cut -d' ' -f2")
 
         if [ -z "$BEST_MODEL" ]; then
