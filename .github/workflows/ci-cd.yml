@@ -79,8 +79,16 @@ jobs:
       shell: pwsh
       run: |
         minikube ssh "cat /data/metrics_*.txt" > all_metrics.txt
-        $BEST_MSE = Get-Content all_metrics.txt | Sort-Object | Select-Object -First 1
-        $BEST_MODEL = minikube ssh "ls /data/model_*.joblib" | Sort-Object | Select-Object -First 1
+        
+        # Check if the metrics file exists and is not empty
+        if (Test-Path "all_metrics.txt" -and (Get-Content all_metrics.txt).Length -gt 0) {
+            $BEST_MSE = Get-Content all_metrics.txt | Sort-Object | Select-Object -First 1
+        } else {
+            Write-Output "No metrics files found!"
+            exit 1
+        }
+        
+        $BEST_MODEL = minikube ssh "ls /data/model_*.joblib | Sort-Object | Select-Object -First 1"
 
         if (-not $BEST_MODEL) {
             Write-Output "No model file found in /data/"
