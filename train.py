@@ -54,4 +54,4 @@ metrics_filename = f"/data/metrics_{mse}.txt"
 
 joblib.dump(model, model_filename)
 with open(metrics_filename, "w") as f:
-    f.write(str(mse))
+    f.write(str(mse)+"\n")
