@@ -101,7 +101,7 @@ jobs:
         echo "$BEST_MODEL" > best_model.joblib
 
 
-        BEST_MSE=$(minikube ssh "cat /data/mse_*.txt | sort -n | head -1")
+        BEST_MSE=$(minikube ssh "cat /data/metrics_*.txt | sort -n | head -1")
         if [ -z "$BEST_MSE" ]; then
           echo "No MSE file found in /data/"
           exit 1
@@ -116,7 +116,7 @@ jobs:
         git add best_mse.txt
         git add best_model.joblib
         git commit -m "Uploading model and mse scores[skip ci]" 
-        git push --force https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+        git push --force https://x-access-token:${MY_PAT}@github.com/mannarn/Boston-model.git
         
     # Step 10: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
@@ -187,4 +187,4 @@ jobs:
         git config --global user.name "mannarn"
         git add old_best_mse.txt
         git commit -m "Update old best MSE score[skip ci]"
-        git push --force https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+        git push --force https://x-access-token:${MY_PAT}@github.com/mannarn/Boston-model.git
