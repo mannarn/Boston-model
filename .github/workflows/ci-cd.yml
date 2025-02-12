@@ -12,18 +12,18 @@ jobs:
 
     # Step 2: Set up Docker Buildx
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      uses: docker/setup-buildx-action@v2
 
     # Step 3: Log in to Docker Hub
     - name: Log in to Docker Hub
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         username: mannarn
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     # Step 4: Build and push Train Docker image
     - name: Build and push Train Docker image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: .
         file: Docker/Dockerfile.train
@@ -34,8 +34,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-train
     outputs:
-      best_mse: ${{ steps.collect_results.outputs.best_mse }}
-      best_model_file: ${{ steps.collect_results.outputs.best_model_file }}
+      best_mse: ${{ steps.getting_results.outputs.best_mse }}
+      best_model_file: ${{ steps.getting_results.outputs.best_model_file }}
       old_best_mse: ${{ steps.retrieve_old.outputs.old_best_mse }}
     steps:
     # Step 1: Checkout code
@@ -97,9 +97,8 @@ jobs:
           exit 1
         fi
         echo "Best Model: $BEST_MODEL"
-        echo "::set-output name=best_model_file::$BEST_MODEL"
+        echo "best_model_file=$BEST_MODEL" >> $GITHUB_OUTPUT
         echo "$BEST_MODEL" > best_model.joblib
-
 
         BEST_MSE=$(minikube ssh "cat /data/metrics_*.txt | sort -n | head -1")
         if [ -z "$BEST_MSE" ]; then
@@ -107,16 +106,14 @@ jobs:
           exit 1
         fi
         echo "Best MSE: $BEST_MSE"
-        echo "::set-output name=best_mse::$BEST_MSE"
-        echo "Output: $BEST_MSE" > best_mse.txt
+        echo "best_mse=$BEST_MSE" >> $GITHUB_OUTPUT
         echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
 
         git config --global user.email "mannarmannan02@gmail.com"
         git config --global user.name "mannarn"
-        git add best_mse.txt
         git add best_model.joblib
-        git commit -m "Uploading model and mse scores[skip ci]" 
-        git push --force https://x-access-token:${MY_PAT}@github.com/mannarn/Boston-model.git
+        git commit -m "Uploading model [skip ci]" 
+        git push --force "https://x-access-token:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git"
         
     # Step 10: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
@@ -128,7 +125,7 @@ jobs:
           OLD_BEST_MSE=999999
         fi
         echo "Old Best MSE: $OLD_BEST_MSE"
-        echo "::set-output name=old_best_mse::$OLD_BEST_MSE"
+        echo "old_best_mse=$OLD_BEST_MSE" >> $GITHUB_OUTPUT
         echo "OLD_BEST_MSE=$OLD_BEST_MSE" >> $GITHUB_ENV
 
   build-and-push-api:
@@ -141,15 +138,14 @@ jobs:
 
     # Step 2: Log in to Docker Hub
     - name: Log in to Docker Hub
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         username: mannarn
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    
-    # Step 4: Build and push API Docker image
+    # Step 3: Build and push API Docker image
     - name: Build and push API Docker image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: .
         file: Docker/Dockerfile.api
@@ -178,7 +174,7 @@ jobs:
 
     # Step 3: Update old model's best MSE score if new model is better
     - name: Update old model's best MSE score
-      if: ${{fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
+      if: ${{ fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -187,4 +183,4 @@ jobs:
         git config --global user.name "mannarn"
         git add old_best_mse.txt
         git commit -m "Update old best MSE score[skip ci]"
-        git push --force https://x-access-token:${MY_PAT}@github.com/mannarn/Boston-model.git
+        git push --force "https://x-access-token:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git"
