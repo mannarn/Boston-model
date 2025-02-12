@@ -184,3 +184,4 @@ jobs:
         git add old_best_mse.txt
         git commit -m "Update old best MSE score[skip ci]"
         git push --force "https://x-access-token:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git"
+        #End of the CI/CD pipeline
