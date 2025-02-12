@@ -97,6 +97,26 @@ jobs:
           exit 1
         fi
         echo "Best Model: $BEST_MODEL"
+        echo "::set-output name=best_model_file::$BEST_MODEL"
+        echo "$BEST_MODEL" > best_model.joblib
+
+
+        BEST_MSE=$(minikube ssh "cat /data/mse_*.txt | sort -n | head -1")
+        if [ -z "$BEST_MSE" ]; then
+          echo "No MSE file found in /data/"
+          exit 1
+        fi
+        echo "Best MSE: $BEST_MSE"
+        echo "::set-output name=best_mse::$BEST_MSE"
+        echo "Output: $BEST_MSE" > best_mse.txt
+        echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
+
+        git config --global user.email "mannarmannan02@gmail.com"
+        git config --global user.name "mannarn"
+        git add best_mse.txt
+        git add best_model.joblib
+        git commit -m "Uploading model and mse scores[skip ci]" 
+        git push --force https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
         
     # Step 10: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
@@ -158,7 +178,7 @@ jobs:
 
     # Step 3: Update old model's best MSE score if new model is better
     - name: Update old model's best MSE score
-      if: ${{ env.BEST_MSE != '' && env.OLD_BEST_MSE != '' && fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
+      if: ${{fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -166,5 +186,5 @@ jobs:
         git config --global user.email "mannarmannan02@gmail.com"
         git config --global user.name "mannarn"
         git add old_best_mse.txt
-        git commit -m "Update old best MSE score"
+        git commit -m "Update old best MSE score[skip ci]"
         git push --force https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
