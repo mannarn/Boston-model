@@ -168,25 +168,31 @@ jobs:
     # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v2
-    #print old and new mse scores
+
+    # Step 2: Print old and new MSE scores
     - name: Check MSE SCORE
       id: check_mse
       run: |
         echo "Old Best MSE: $OLD_BEST_MSE"
         echo "New Best MSE: $BEST_MSE"
+        if (( $(echo "$BEST_MSE < $OLD_BEST_MSE" | bc -l) )); then
+          echo "deploy=true" >> $GITHUB_ENV
+        else
+          echo "deploy=false" >> $GITHUB_ENV
+        fi
 
-    # Step 2: Deploy to Kubernetes
+    # Step 3: Deploy to Kubernetes if new MSE is lower
     - name: Deploy to Kubernetes
-      if: echo "${{ needs.check_mse.outputs.BEST_MSE }}" < echo "${{ needs.check_mse.outputs.OLD_BEST_MSE }}"
+      if: env.deploy == 'true'
       uses: azure/k8s-deploy@v1
       with:
         namespace: default
         manifests: kubernetes/deployment.yaml
         images: mannarn/model-api:latest
 
-    # Step 3: Update old model's best MSE score if new model is better
+    # Step 4: Update old model's best MSE score if new model is better
     - name: Update old model's best MSE score
-      if: ${{ fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
+      if: env.deploy == 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -195,7 +201,6 @@ jobs:
         git config --global user.email "github-actions@github.com"
 
         git add old_best_mse.txt
-        git commit -m "Uploading old_best_mse [skip ci]" 
-        #git remote set-url origin https://mannarn:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git
+        git commit -m "Updating old_best_mse [skip ci]" 
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mannarn/Boston-model.git
         git push origin main
