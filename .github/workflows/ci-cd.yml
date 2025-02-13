@@ -199,17 +199,20 @@ jobs:
           minikube kubectl -- config view --flatten > ~/.kube/config
           echo "KUBECONFIG=~/.kube/config" >> $GITHUB_ENV
 
-      # Step 5: Deploy to Kubernetes if new MSE is lower
-      - name: Deploy to Kubernetes
-        if: env.deploy == 'true'
-        uses: azure/k8s-deploy@v1
-        with:
-          namespace: default
-          manifests: |
-            kubernetes/deployment.yaml
-            kubernetes/flask_api_service.yaml
-          images: mannarn/model-api:latest
-          kubectl-version: "latest"
+       #I am skipping deployment because, it completely another department and more work for now
+
+       
+#      # Step 5: Deploy to Kubernetes if new MSE is lower
+#      - name: Deploy to Kubernetes
+#        if: env.deploy == 'true'
+#        uses: azure/k8s-deploy@v1
+#        with:
+#          namespace: default
+#          manifests: |
+#            kubernetes/deployment.yaml
+#            kubernetes/flask_api_service.yaml
+#          images: mannarn/model-api:latest
+##          kubectl-version: "latest"
 
       # Step 6: Update old model's best MSE score if new model is better
       - name: Update old model's best MSE score
