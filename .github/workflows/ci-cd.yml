@@ -177,7 +177,7 @@ jobs:
 
     # Step 2: Deploy to Kubernetes
     - name: Deploy to Kubernetes
-      if: ${{ fromJson(env.BEST_MSE) < fromJson(env.OLD_BEST_MSE) }}
+      if: echo "${{ needs.check_mse.outputs.BEST_MSE }}" < echo "${{ needs.check_mse.outputs.OLD_BEST_MSE }}"
       uses: azure/k8s-deploy@v1
       with:
         namespace: default
