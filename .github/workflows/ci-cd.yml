@@ -165,12 +165,8 @@ jobs:
     
     - name: CLRF to lf
       run: |
-        git config --global core.autocrlf false
-        git config --global core.eol lf
-        git add .
-        git commit -m "Convert CRLF to LF"
-        git push origin main
-
+        sed -i 's/\r$//' "$0"
+        
     # Step 2: Print old and new MSE scores
     - name: Check MSE SCORE
       id: check_mse
