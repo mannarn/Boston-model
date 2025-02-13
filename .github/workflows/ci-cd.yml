@@ -162,7 +162,14 @@ jobs:
     # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v2
-      
+    
+    - name: CLRF to lf
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.eol lf
+        git add .
+        git commit -m "Convert CRLF to LF" || echo "No CRLF to LF conversion needed"
+
     # Step 2: Print old and new MSE scores
     - name: Check MSE SCORE
       id: check_mse
