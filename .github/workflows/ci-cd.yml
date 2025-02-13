@@ -90,7 +90,7 @@ jobs:
     - name: Getting results
       id: getting_results
       run: |
-        BEST_MODEL=$(minikube ssh "ls /data/model_*.joblib | awk -F'[_ .]' '{print \$3, \$0}' | sort -n | head -1 | cut -d' ' -f2")
+        BEST_MODEL=$(minikube ssh -- "ls /data/model_*.joblib | sort -t'_' -k2,2n | head -1")
 
         if [ -z "$BEST_MODEL" ]; then
           echo "No model file found in /data/"
@@ -100,7 +100,7 @@ jobs:
         echo "best_model_file=$BEST_MODEL" >> $GITHUB_OUTPUT
         echo "$BEST_MODEL" > best_model.joblib
 
-        BEST_MSE=$(minikube ssh "cat /data/metrics_*.txt | sort -n | head -1")
+        BEST_MSE=$(minikube ssh "ls /data/metrics_*.txt | sort -n | head -1")
         if [ -z "$BEST_MSE" ]; then
           echo "No MSE file found in /data/"
           exit 1
