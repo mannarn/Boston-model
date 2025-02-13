@@ -199,29 +199,7 @@ jobs:
           minikube kubectl -- config view --flatten > ~/.kube/config
           echo "KUBECONFIG=~/.kube/config" >> $GITHUB_ENV
 
-      # Step 5: Wait for Minikube API server to be ready
-      - name: Wait for Minikube API server
-        if: env.deploy == 'true'
-        run: |
-          echo "Waiting for Minikube API server to be ready..."
-          for i in {1..30}; do
-            if kubectl cluster-info &> /dev/null; then
-              echo "Minikube API server is ready!"
-              break
-            fi
-            echo "Minikube API server not ready yet. Retrying in 10 seconds..."
-            sleep 10
-          done
-
-      # Step 6: Verify Kubernetes cluster connection
-      - name: Verify Kubernetes cluster connection
-        if: env.deploy == 'true'
-        run: |
-          kubectl cluster-info
-          kubectl get nodes
-          kubectl config current-context
-
-      # Step 7: Deploy to Kubernetes if new MSE is lower
+      # Step 5: Deploy to Kubernetes if new MSE is lower
       - name: Deploy to Kubernetes
         if: env.deploy == 'true'
         uses: azure/k8s-deploy@v1
@@ -232,9 +210,8 @@ jobs:
             kubernetes/flask_api_service.yaml
           images: mannarn/model-api:latest
           kubectl-version: "latest"
-          validate: false  # Bypass validation for Minikube
 
-      # Step 8: Update old model's best MSE score if new model is better
+      # Step 6: Update old model's best MSE score if new model is better
       - name: Update old model's best MSE score
         if: env.deploy == 'true'
         env:
