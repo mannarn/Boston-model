@@ -166,6 +166,7 @@ jobs:
     - name: CLRF to lf
       run: |
         sed -i 's/\r$//' "$0"
+
         
     # Step 2: Print old and new MSE scores
     - name: Check MSE SCORE
@@ -173,10 +174,10 @@ jobs:
       run: |
         echo "Old Best MSE: $OLD_BEST_MSE"
         echo "New Best MSE: $BEST_MSE"
-        if (( $(echo "$BEST_MSE < $OLD_BEST_MSE" | bc -l) )); then
-          echo "deploy=true" >> $GITHUB_ENV
+        if awk "BEGIN {exit !($BEST_MSE < $OLD_BEST_MSE)}"; then
+            echo "deploy=true" >> $GITHUB_ENV
         else
-          echo "deploy=false" >> $GITHUB_ENV
+            echo "deploy=false" >> $GITHUB_ENV
         fi
 
     # Step 3: Deploy to Kubernetes if new MSE is lower
