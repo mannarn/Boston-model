@@ -162,6 +162,10 @@ jobs:
     # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v2
+      
+    - name: Fix Line Endings
+      run: |
+        sed -i 's/\r$//' script.sh
 
     # Step 2: Print old and new MSE scores
     - name: Check MSE SCORE
