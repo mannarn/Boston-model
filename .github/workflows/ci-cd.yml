@@ -109,7 +109,7 @@ jobs:
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions@github.com"
 
-        git add best_model.joblib
+        git add Docker/best_model.joblib
         git commit --allow-empty -m "Uploading model [skip ci]" 
         #git remote set-url origin https://mannarn:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mannarn/Boston-model.git
