@@ -17,3 +17,5 @@ spec:
         image: mannarn/model-api:latest
         ports:
         - containerPort: 5000
+        imagePullPolicy: Always
+      restartPolicy: Always
