@@ -180,24 +180,42 @@ jobs:
             echo "deploy=false" >> $GITHUB_ENV
           fi
 
-      # Step 4: Set up Kubernetes context (Minikube)
-      - name: Set up Minikube context
+      # Step 4: Set up Minikube and Kubernetes context
+      - name: Set up Minikube
         if: env.deploy == 'true'
         run: |
+          # Install Minikube
+          curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+          # Start Minikube cluster
           minikube start --driver=docker --cpus=4 --memory=8192mb
-          minikube kubectl -- version
+
+          # Verify Minikube status
+          minikube status
+
+          # Configure kubectl to use Minikube's context
           mkdir -p ~/.kube
           minikube kubectl -- config view --flatten > ~/.kube/config
           echo "KUBECONFIG=~/.kube/config" >> $GITHUB_ENV
 
-      # Step 4.5: Checking connection before deploying
+      # Step 5: Verify Kubernetes cluster connection
       - name: Verify Kubernetes cluster connection
+        if: env.deploy == 'true'
         run: |
-          kubectl cluster-info
-          kubectl get nodes
-          kubectl config view
+          # Wait for Minikube to be fully ready
+          sleep 30
 
-      # Step 5: Deploy to Kubernetes if new MSE is lower
+          # Check cluster info
+          kubectl cluster-info
+
+          # Check nodes
+          kubectl get nodes
+
+          # Check current context
+          kubectl config current-context
+
+      # Step 6: Deploy to Kubernetes if new MSE is lower
       - name: Deploy to Kubernetes
         if: env.deploy == 'true'
         uses: azure/k8s-deploy@v1
@@ -208,8 +226,8 @@ jobs:
             kubernetes/flask_api_service.yaml
           images: mannarn/model-api:latest
           kubectl-version: "latest"
-
-      # Step 6: Update old model's best MSE score if new model is better
+          
+      # Step 7: Update old model's best MSE score if new model is better
       - name: Update old model's best MSE score
         if: env.deploy == 'true'
         env:
