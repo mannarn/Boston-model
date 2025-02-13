@@ -100,7 +100,7 @@ jobs:
         echo "best_model_file=$BEST_MODEL" >> $GITHUB_OUTPUT
         echo "$BEST_MODEL" > best_model.joblib
 
-        BEST_MSE=$(minikube ssh "ls /data/metrics_*.txt | sort -n | head -1")
+        BEST_MSE=$(minikube ssh "cat /data/metrics_*.txt | sort -n | head -1")
         if [ -z "$BEST_MSE" ]; then
           echo "No MSE file found in /data/"
           exit 1
@@ -109,12 +109,16 @@ jobs:
         echo "best_mse=$BEST_MSE" >> $GITHUB_OUTPUT
         echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
 
+        #git clone https://mannarn:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git
+        #cd Boston-model
+
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions@github.com"
 
         git add best_model.joblib
         git commit -m "Uploading model [skip ci]" 
-        git remote set-url origin https://mannarn:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git
+        #git remote set-url origin https://mannarn:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mannarn/Boston-model.git
         git push origin main
         
     # Step 10: Retrieve old model's best MSE score
