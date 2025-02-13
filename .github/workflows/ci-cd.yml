@@ -35,7 +35,6 @@ jobs:
     needs: build-and-train
     outputs:
       best_mse: ${{ steps.getting_results.outputs.best_mse }}
-      best_model_file: ${{ steps.getting_results.outputs.best_model_file }}
       old_best_mse: ${{ steps.retrieve_old.outputs.old_best_mse }}
     steps:
     # Step 1: Checkout code
@@ -97,20 +96,15 @@ jobs:
           exit 1
         fi
         echo "Best Model: $BEST_MODEL"
-        echo "best_model_file=$BEST_MODEL" >> $GITHUB_OUTPUT
-        echo "$BEST_MODEL" > best_model.joblib
 
         BEST_MSE=$(minikube ssh "cat /data/metrics_*.txt | sort -n | head -1")
         if [ -z "$BEST_MSE" ]; then
           echo "No MSE file found in /data/"
           exit 1
         fi
+
         echo "Best MSE: $BEST_MSE"
         echo "best_mse=$BEST_MSE" >> $GITHUB_OUTPUT
-        echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
-
-        #git clone https://mannarn:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git
-        #cd Boston-model
 
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions@github.com"
@@ -132,7 +126,7 @@ jobs:
         fi
         echo "Old Best MSE: $OLD_BEST_MSE"
         echo "old_best_mse=$OLD_BEST_MSE" >> $GITHUB_OUTPUT
-        echo "OLD_BEST_MSE=$OLD_BEST_MSE" >> $GITHUB_ENV
+        
 
   build-and-push-api:
     runs-on: ubuntu-latest
