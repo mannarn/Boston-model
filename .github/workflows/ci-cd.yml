@@ -154,7 +154,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build-and-push-api
+    needs: [build-and-push-api, hyperparameter-tuning]
     env:
       BEST_MSE: ${{ needs.hyperparameter-tuning.outputs.best_mse }}
       OLD_BEST_MSE: ${{ needs.hyperparameter-tuning.outputs.old_best_mse }}
