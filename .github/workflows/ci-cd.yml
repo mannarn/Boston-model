@@ -168,6 +168,12 @@ jobs:
     # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v2
+    #print old and new mse scores
+    - name: Check MSE SCORE
+      id: check_mse
+      run: |
+        echo "Old Best MSE: $OLD_BEST_MSE"
+        echo "New Best MSE: $BEST_MSE"
 
     # Step 2: Deploy to Kubernetes
     - name: Deploy to Kubernetes
