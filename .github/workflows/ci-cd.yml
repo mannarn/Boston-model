@@ -174,11 +174,12 @@ jobs:
       run: |
         echo "Old Best MSE: $OLD_BEST_MSE"
         echo "New Best MSE: $BEST_MSE"
-        if awk "BEGIN {exit !($BEST_MSE < $OLD_BEST_MSE)}"; then
-            echo "deploy=true" >> $GITHUB_ENV
+        if [ "$(printf '%.10f\n' "$BEST_MSE" | sort -g | head -1)" = "$BEST_MSE" ]; then
+          echo "deploy=true" >> $GITHUB_ENV
         else
-            echo "deploy=false" >> $GITHUB_ENV
+          echo "deploy=false" >> $GITHUB_ENV
         fi
+
 
     # Step 3: Deploy to Kubernetes if new MSE is lower
     - name: Deploy to Kubernetes
