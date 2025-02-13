@@ -174,7 +174,10 @@ jobs:
       run: |
         echo "Old Best MSE: $OLD_BEST_MSE"
         echo "New Best MSE: $BEST_MSE"
-        if [ "$(printf '%.10f\n' "$BEST_MSE" | sort -g | head -1)" = "$BEST_MSE" ]; then
+        BEST_INT=$(echo "$BEST_MSE * 1000000" | bc)
+        OLD_INT=$(echo "$OLD_BEST_MSE * 1000000" | bc)
+
+        if [ "$BEST_INT" -lt "$OLD_INT" ]; then
           echo "deploy=true" >> $GITHUB_ENV
         else
           echo "deploy=false" >> $GITHUB_ENV
