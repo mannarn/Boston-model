@@ -180,6 +180,29 @@ jobs:
             echo "deploy=false" >> $GITHUB_ENV
           fi
 
+
+      # Step 6: Update old model's best MSE score if new model is better
+      - name: Update old model's best MSE score
+        if: env.deploy == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions@github.com"
+          #git pull --rebase https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mannarn/Boston-model.git main
+          
+          #git add .
+          #git commit -m "Saving my changes before rebase[skip ci]"
+          #git pull origin main --rebase
+          #git push origin main
+
+          
+          git add old_best_mse.txt
+          git commit --allow-empty -m "Updating old_best_mse [skip ci]"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mannarn/Boston-model.git
+          git push origin main
+
       # Step 4: Set up Minikube and Kubernetes context
       - name: Set up Minikube
         if: env.deploy == 'true'
@@ -214,24 +237,3 @@ jobs:
 #          images: mannarn/model-api:latest
 ##          kubectl-version: "latest"
 
-      # Step 6: Update old model's best MSE score if new model is better
-      - name: Update old model's best MSE score
-        if: env.deploy == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "$BEST_MSE" > old_best_mse.txt
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions@github.com"
-          #git pull --rebase https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mannarn/Boston-model.git main
-          
-          git add .
-          git commit -m "Saving my changes before rebase[skip ci]"
-          git pull origin main --rebase
-          git push origin main
-
-          
-          git add old_best_mse.txt
-          git commit --allow-empty -m "Updating old_best_mse [skip ci]"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mannarn/Boston-model.git
-          git push origin main
