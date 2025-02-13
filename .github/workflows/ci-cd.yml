@@ -109,11 +109,13 @@ jobs:
         echo "best_mse=$BEST_MSE" >> $GITHUB_OUTPUT
         echo "BEST_MSE=$BEST_MSE" >> $GITHUB_ENV
 
-        git config --global user.email "mannarmannan02@gmail.com"
-        git config --global user.name "mannarn"
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions@github.com"
+
         git add best_model.joblib
         git commit -m "Uploading model [skip ci]" 
-        git push --force "https://x-access-token:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git"
+        git remote set-url origin https://mannarn:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git
+        git push origin main
         
     # Step 10: Retrieve old model's best MSE score
     - name: Retrieve old model's best MSE score
@@ -179,9 +181,10 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         echo "$BEST_MSE" > old_best_mse.txt
-        git config --global user.email "mannarmannan02@gmail.com"
-        git config --global user.name "mannarn"
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions@github.com"
+
         git add old_best_mse.txt
-        git commit -m "Update old best MSE score[skip ci]"
-        git push --force "https://x-access-token:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git"
-        #End of the CI/CD pipeline
+        git commit -m "Uploading old_best_mse [skip ci]" 
+        git remote set-url origin https://mannarn:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git
+        git push origin main
