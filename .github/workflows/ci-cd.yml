@@ -152,36 +152,54 @@ jobs:
         push: true
         tags: mannarn/model-api:latest
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [build-and-push-api, hyperparameter-tuning]
-    env:
-      BEST_MSE: ${{ needs.hyperparameter-tuning.outputs.best_mse }}
-      OLD_BEST_MSE: ${{ needs.hyperparameter-tuning.outputs.old_best_mse }}
-    steps:
+deploy:
+  runs-on: ubuntu-latest
+  needs: [build-and-push-api, hyperparameter-tuning]
+  env:
+    BEST_MSE: ${{ needs.hyperparameter-tuning.outputs.best_mse }}
+    OLD_BEST_MSE: ${{ needs.hyperparameter-tuning.outputs.old_best_mse }}
+  steps:
     # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v2
-    
-    - name: CLRF to lf
-      run: |
-        sed -i 's/\r$//' "$0"
 
-        
-    # Step 2: Print old and new MSE scores
-    - name: Check MSE SCORE
+    # Step 2: Convert CRLF to LF
+    - name: Convert CRLF to LF
+      run: |
+        find . -type f -exec sed -i 's/\r$//' {} \;
+
+    # Step 3: Print old and new MSE scores
+    - name: Check MSE Scores
       id: check_mse
       run: |
         echo "Old Best MSE: $OLD_BEST_MSE"
         echo "New Best MSE: $BEST_MSE"
         if awk "BEGIN {exit !($BEST_MSE < $OLD_BEST_MSE)}"; then
+          echo "New model is better. Deploying..."
           echo "deploy=true" >> $GITHUB_ENV
         else
+          echo "New model is not better. Skipping deployment."
           echo "deploy=false" >> $GITHUB_ENV
         fi
 
+    # Step 4: Set up Kubernetes context (Minikube)
+    - name: Set up Minikube context
+      if: env.deploy == 'true'
+      run: |
+        minikube start --driver=docker --cpus=4 --memory=8192mb
+        minikube kubectl -- version
+        mkdir -p ~/.kube
+        minikube kubectl -- config view --flatten > ~/.kube/config
+        echo "KUBECONFIG=~/.kube/config" >> $GITHUB_ENV
 
-    # Step 3: Deploy to Kubernetes if new MSE is lower
+    #step 4.5: Checking connection before deploying
+    - name: Verify Kubernetes cluster connection
+      run: |
+        kubectl cluster-info
+        kubectl get nodes
+        kubectl config view
+
+    # Step 5: Deploy to Kubernetes if new MSE is lower
     - name: Deploy to Kubernetes
       if: env.deploy == 'true'
       uses: azure/k8s-deploy@v1
@@ -191,8 +209,10 @@ jobs:
           kubernetes/deployment.yaml
           kubernetes/flask_api_service.yaml
         images: mannarn/model-api:latest
+        kubectl-version: "latest"
+        validate: false  # Bypass validation for Minikube
 
-    # Step 4: Update old model's best MSE score if new model is better
+    # Step 6: Update old model's best MSE score if new model is better
     - name: Update old model's best MSE score
       if: env.deploy == 'true'
       env:
@@ -201,8 +221,7 @@ jobs:
         echo "$BEST_MSE" > old_best_mse.txt
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions@github.com"
-
         git add old_best_mse.txt
-        git commit --allow-empty -m "Updating old_best_mse [skip ci]" 
+        git commit --allow-empty -m "Updating old_best_mse [skip ci]"
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mannarn/Boston-model.git
         git push origin main
