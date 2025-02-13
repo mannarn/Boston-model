@@ -165,7 +165,7 @@ jobs:
 
     - name: Fix Line Endings
       run: |
-        sed -i 's/\r$//' script.sh
+        sed -i 's/\r$//' "$0"
 
     # Step 2: Print old and new MSE scores
     - name: Check MSE SCORE
