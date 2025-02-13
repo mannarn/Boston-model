@@ -196,5 +196,6 @@ jobs:
 
         git add old_best_mse.txt
         git commit -m "Uploading old_best_mse [skip ci]" 
-        git remote set-url origin https://mannarn:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git
+        #git remote set-url origin https://mannarn:${{ secrets.MY_PAT }}@github.com/mannarn/Boston-model.git
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mannarn/Boston-model.git
         git push origin main
